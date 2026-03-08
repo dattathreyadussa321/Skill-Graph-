@@ -1,13 +1,11 @@
 import functools
 from concurrent.futures.thread import ThreadPoolExecutor
-from py2neo import Graph
+from models.connection import get_graph
 from operator import itemgetter
 
 from utilities.query_for_algorithm import *
 from constants.algorithm_constants import *
 from algorithm_implementation import finding_set_courses_step2
-
-graph = Graph("bolt://neo4j:123456@localhost:7687")
 
 
 # count amount course in final set course
@@ -22,21 +20,21 @@ def get_list_id(list_dict):
 
 # count amount lo redundant
 def count_amount_lo_redundant(set_course, user_lo_need):
-    lo_provided = graph.run(query_to_get_list_lo_provided_by_set_course(get_list_id(set_course))).data()
+    lo_provided = get_graph().run(query_to_get_list_lo_provided_by_set_course(get_list_id(set_course))).data()
     set_lo = list(set(get_list_id(lo_provided)))
     return set_lo.__len__() - user_lo_need.__len__()
 
 
 # count duplicate lo
 def count_duplicate_lo(set_course):
-    lo_provided = graph.run(query_to_get_list_lo_provided_by_set_course(get_list_id(set_course))).data()
+    lo_provided = get_graph().run(query_to_get_list_lo_provided_by_set_course(get_list_id(set_course))).data()
     set_lo = list(set(get_list_id(lo_provided)))
     return lo_provided.__len__() - set_lo.__len__()
 
 
 def count_amount_level_redundant(set_course, user_lo_need):
     counter = 0
-    lo_provided = graph.run(query_to_get_list_lo_provided_by_set_course(get_list_id(set_course))).data()
+    lo_provided = get_graph().run(query_to_get_list_lo_provided_by_set_course(get_list_id(set_course))).data()
 
     for lo in user_lo_need:
         for lo_provided_element in lo_provided:
@@ -48,7 +46,7 @@ def count_amount_level_redundant(set_course, user_lo_need):
 
 def count_avg_evaluation_for_set_course(set_course):
     set_course_id = list(set(get_list_id(set_course)))
-    avg_rating = graph.run(query_get_rating_set_course(set_course_id)).data()
+    avg_rating = get_graph().run(query_get_rating_set_course(set_course_id)).data()
     if avg_rating[0].get('avgRating') is not None:
         return 1 / avg_rating[0].get('avgRating')
     else:
@@ -57,14 +55,14 @@ def count_avg_evaluation_for_set_course(set_course):
 
 def count_sum_tuition_of_set_course(set_course):
     set_course_id = list(set(get_list_id(set_course)))
-    sumFee = graph.run(query_get_sum_tuition_set_course(set_course_id)).data()
+    sumFee = get_graph().run(query_get_sum_tuition_set_course(set_course_id)).data()
 
     return sumFee[0].get('sumFee') or 0
 
 
 def count_sum_time_of_set_course(set_course):
     set_course_id = list(set(get_list_id(set_course)))
-    list_time = graph.run(query_get_list_time_of_set_course(set_course_id)).data()
+    list_time = get_graph().run(query_get_list_time_of_set_course(set_course_id)).data()
     total_time = 0
 
     for time in list_time:
@@ -110,7 +108,7 @@ def filtered_by_cost_or_time(user, set_course_complete):
 
 
 def get_top_course_to_step_4(user):
-    user_lo_need = graph.run(query_get_user_need_lo(user.id)).data()
+    user_lo_need = get_graph().run(query_get_user_need_lo(user.id)).data()
     set_course_complete = finding_set_courses_step2.parse_for_step3_input(user.id)
 
     set_course_filtered = filtered_by_cost_or_time(user, set_course_complete)

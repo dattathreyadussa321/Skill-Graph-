@@ -350,7 +350,7 @@ class Industry(StructuredNode):
     def to_json(self):
         return {
             "IndustryName": self.IndustryName,
-            "taxonomy": map(lambda n: n.to_json(), self.toxonomy),
+            "taxonomy": map(lambda n: n.to_json(), self.taxonomy),
             "career": map(lambda n: n.to_json(), self.career),
         }
 

@@ -1,146 +1,131 @@
+"""Cypher query builders for Algorithm V2."""
+
+
 def query_get_user_need_lo(user_id):
-    return f"MATCH (u:User)-[r]->(k)" \
-           f"WHERE ID(u) = {user_id} AND TYPE(r) =~ 'NEED_.*' " \
-           f"RETURN id(k) as id, r.Level as level;"
+    return (f"MATCH (u:User)-[r]->(k) "
+            f"WHERE ID(u) = {int(user_id)} AND TYPE(r) =~ 'NEED_.*' "
+            f"RETURN id(k) AS id, r.Level AS level;")
 
 
-# get set lo that user has and need
 def query_get_user_lo(user_id):
-    return f"MATCH (u:User)-[r]->(k) " \
-           f"WHERE ID(u) = {user_id} AND (TYPE(r) =~ 'NEED_.*' OR TYPE(r) =~'HAS_.*') AND TYPE(r) <> 'HAS_OBJECTIVE' " \
-           f"RETURN id(k) as id, r.Level as level;"
+    return (f"MATCH (u:User)-[r]->(k) "
+            f"WHERE ID(u) = {int(user_id)} AND (TYPE(r) =~ 'NEED_.*' OR TYPE(r) =~'HAS_.*') AND TYPE(r) <> 'HAS_OBJECTIVE' "
+            f"RETURN id(k) AS id, r.Level AS level;")
 
 
-# get set LO that a course can provide
 def query_get_lo_provided_by_course(course_id):
-    query = 'MATCH (lo) <- [r2] - (c:Course) ' \
-            f'WHERE id(c) = {course_id} ' \
-            f'AND TYPE(r2) =~ "TEACH_.*" ' \
-            f'RETURN id(lo) as id, r2.Level as level'
-    return query
+    return (f'MATCH (lo) <- [r2] - (c:Course) '
+            f'WHERE id(c) = {int(course_id)} '
+            f'AND TYPE(r2) =~ "TEACH_.*" '
+            f'RETURN id(lo) AS id, r2.Level AS level')
 
 
-# get input LO of a course
 def query_get_input_lo_of_a_course(course_id):
-    return 'MATCH (c:Course)-[r]->(lo) ' \
-           f'WHERE id(c) = {course_id} AND TYPE(r) =~ "REQUIRE_.*" ' \
-           'RETURN id(lo) as id, r.Level as level'
+    return (f'MATCH (c:Course)-[r]->(lo) '
+            f'WHERE id(c) = {int(course_id)} AND TYPE(r) =~ "REQUIRE_.*" '
+            f'RETURN id(lo) AS id, r.Level AS level')
 
 
-# get set courses provided lo
 def query_get_courses_provided_a_lo(lo_id, level):
-    return f'MATCH (lo)<-[r]-(c:Course) ' \
-           f'match (lo1)<-[r1]-(c1:Course)-[r2]->(lo1) ' \
-           f'where type(r1) =~ "REQUIRE.*" and type(r2) =~ "TEACH.*" ' \
-           f'with lo, c, r, collect(id(c1)) as except ' \
-           f'WHERE id(lo) = {lo_id} and r.Level >= {level} and not id(c) in except ' \
-           f'and type(r)=~"TEACH.*" return id(c) as id'
+    return (f'MATCH (lo)<-[r]-(c:Course) '
+            f'MATCH (lo1)<-[r1]-(c1:Course)-[r2]->(lo1) '
+            f'WHERE type(r1) =~ "REQUIRE.*" AND type(r2) =~ "TEACH.*" '
+            f'WITH lo, c, r, collect(id(c1)) AS except '
+            f'WHERE id(lo) = {int(lo_id)} AND r.Level >= {int(level)} AND NOT id(c) IN except '
+            f'AND type(r) =~ "TEACH.*" RETURN id(c) AS id')
 
 
-# get overlap similarity for user
 def query_get_top_courses_with_overlap_similarity(user_id, courses, muy):
-    return 'MATCH (p1:User)-[ru]-(e1) ' \
-           f' where type(ru) <> "HAS_OBJECTIVE" and id(p1) = {user_id} ' \
-           f'WITH p1, collect(id(e1)) AS p1entity_type , {courses} as courses ' \
-           f'MATCH (p2:Course)-[rc]-(e2) ' \
-           f'WHERE (type(rc) =~ "TEACH_.*" or type(rc) =~"REQUIRE_.*") and id(p2) in courses ' \
-           'WITH p1, p1entity_type, p2, collect(id(e2)) AS p2entity_type ' \
-           'WHERE gds.similarity.overlap(p1entity_type, p2entity_type) > 0 ' \
-           'RETURN id(p2) as id, gds.similarity.overlap(p1entity_type, p2entity_type) AS similarity ' \
-           'ORDER BY similarity DESC ' \
-           f'LIMIT {muy}'
+    return (f'MATCH (p1:User)-[ru]-(e1) '
+            f'WHERE type(ru) <> "HAS_OBJECTIVE" AND id(p1) = {int(user_id)} '
+            f'WITH p1, collect(id(e1)) AS p1entity_type, {list(courses)} AS courses '
+            f'MATCH (p2:Course)-[rc]-(e2) '
+            f'WHERE (type(rc) =~ "TEACH_.*" OR type(rc) =~ "REQUIRE_.*") AND id(p2) IN courses '
+            f'WITH p1, p1entity_type, p2, collect(id(e2)) AS p2entity_type '
+            f'WITH p2, p1entity_type, p2entity_type, '
+            f'toFloat(size([x IN p1entity_type WHERE x IN p2entity_type])) AS intersection, '
+            f'toFloat(CASE WHEN size(p1entity_type) < size(p2entity_type) THEN size(p1entity_type) ELSE size(p2entity_type) END) AS minSize '
+            f'WHERE minSize > 0 AND intersection > 0 '
+            f'RETURN id(p2) AS id, intersection / minSize AS similarity '
+            f'ORDER BY similarity DESC '
+            f'LIMIT {int(muy)}')
 
 
-# ================= step 3 ========================
+# ================= Step 3 ========================
 
-# add label for courses
 def add_new_label_for_courses_selected(courses):
-    return f'with {courses} as course ' \
-           'match (c:Course) ' \
-           'where id(c) in course ' \
-           'set c:Selected; '
+    return (f'WITH {list(courses)} AS course '
+            f'MATCH (c:Course) '
+            f'WHERE id(c) IN course '
+            f'SET c:Selected;')
 
 
-# remove label for courses
 def remove_label_selected():
-    return 'MATCH (n:Selected)' \
-           'REMOVE n:Selected'
+    return ('MATCH (n:Selected) '
+            'REMOVE n:Selected')
 
 
-# create relationship between courses selected
 def create_relationship_btw_courses_selected(courses):
-    return f'with {courses} as courses ' \
-           'match (c:Course)-[r]->(lo)<-[r1]-(c1:Course) ' \
-           'where type(r) =~"REQUIRE.*" and type(r1) =~"TEACH.*"  and id(c) in courses ' \
-           'and id(c1) in courses and id(c) <> id(c1) ' \
-           'MERGE (c1)-[:SELECTED{weight: 1}]->(c); '
+    return (f'WITH {list(courses)} AS courses '
+            f'MATCH (c:Course)-[r]->(lo)<-[r1]-(c1:Course) '
+            f'WHERE type(r) =~ "REQUIRE.*" AND type(r1) =~ "TEACH.*" AND id(c) IN courses '
+            f'AND id(c1) IN courses AND id(c) <> id(c1) '
+            f'MERGE (c1)-[:SELECTED {{weight: 1}}]->(c);')
 
 
-# remove relationship btw courses
 def remove_relationship_btw_courses():
-    return 'match ()-[r:SELECTED]->() ' \
-           'delete r; '
+    return ('MATCH ()-[r:SELECTED]->() '
+            'DELETE r;')
 
 
-# create sub graph
 def create_sub_graph_from_list_courses(user_id):
-    return 'CALL gds.graph.project( ' \
-           f'"{user_id}", ' \
-           '"Selected", ' \
-           '"SELECTED", ' \
-           '{relationshipProperties: "weight"})'
+    # No-op: GDS graph projection not needed; queries use :Selected label directly
+    return 'RETURN 1'
 
 
-# remove sub graph
 def remove_sub_graph(user_id):
-    return f'CALL gds.graph.drop("{user_id}")'
+    # No-op: no in-memory GDS graph to drop
+    return 'RETURN 1'
 
 
-# find single nodes
 def find_single_nodes_inside_sub_graph():
-    return 'match (s:Selected)<-[r]-(s1:Selected) ' \
-           'where type(r) = "SELECTED" ' \
-           'with collect(id(s)) as target, collect(id(s1)) as source ' \
-           'match (s2:Selected) ' \
-           'where not ( id(s2) in target) and not (id(s2)) in source ' \
-           'return id(s2) as id'
+    return ('MATCH (s:Selected)<-[r]-(s1:Selected) '
+            'WHERE type(r) = "SELECTED" '
+            'WITH collect(id(s)) AS target, collect(id(s1)) AS source '
+            'MATCH (s2:Selected) '
+            'WHERE NOT (id(s2) IN target) AND NOT (id(s2) IN source) '
+            'RETURN id(s2) AS id')
 
 
-# find source nodes
 def find_source_nodes_inside_sub_graph():
-    return 'match (s:Selected)<-[r]-(s1:Selected) ' \
-           'where type(r) = "SELECTED" ' \
-           'with collect(id(s)) as target, collect(id(s1)) as source ' \
-           'match (s2:Selected) ' \
-           'where not ( id(s2) in target) and id(s2) in source ' \
-           'return id(s2) as id'
+    return ('MATCH (s:Selected)<-[r]-(s1:Selected) '
+            'WHERE type(r) = "SELECTED" '
+            'WITH collect(id(s)) AS target, collect(id(s1)) AS source '
+            'MATCH (s2:Selected) '
+            'WHERE NOT (id(s2) IN target) AND id(s2) IN source '
+            'RETURN id(s2) AS id')
 
 
-# find target nodes
 def find_target_node_inside_sub_graph():
-    return 'match (s:Selected)<-[r]-(s1:Selected) ' \
-           'where type(r) = "SELECTED" ' \
-           'with collect(id(s1)) as source, collect(id(s)) as target ' \
-           'match (s2:Selected) ' \
-           'where not ( id(s2) in source) and id(s2) in target ' \
-           'return id(s2) as id'
+    return ('MATCH (s:Selected)<-[r]-(s1:Selected) '
+            'WHERE type(r) = "SELECTED" '
+            'WITH collect(id(s1)) AS source, collect(id(s)) AS target '
+            'MATCH (s2:Selected) '
+            'WHERE NOT (id(s2) IN source) AND id(s2) IN target '
+            'RETURN id(s2) AS id')
 
 
-# find paths from source to target
-def find_paths_from_sources_to_targets(sources, targets, user_id,  k):
-    return f'with {sources} as nodeSource, {targets} as nodeTarget ' \
-           'MATCH (source:Selected), (target:Selected) ' \
-           f'where id(source) in nodeSource and id(target) in nodeTarget ' \
-           f'CALL gds.shortestPath.yens.stream("{user_id}", ' \
-           '{sourceNode: source, ' \
-           'targetNode: target, ' \
-           f'k: {k}, ' \
-           'relationshipWeightProperty: "weight" ' \
-           '}) ' \
-           'YIELD index, sourceNode, targetNode, totalCost, nodeIds, costs, path ' \
-           'RETURN ' \
-           'id(gds.util.asNode(sourceNode)) AS sourceNodeName, ' \
-           'id(gds.util.asNode(targetNode)) AS targetNodeName, ' \
-           'totalCost, ' \
-           '[nodeId IN nodeIds | id(gds.util.asNode(nodeId))] AS nodeNames ' \
-           'ORDER BY sourceNode, targetNode, totalCost DESC '
+def find_paths_from_sources_to_targets(sources, targets, user_id, k):
+    max_depth = 20
+    return (f'WITH {list(sources)} AS nodeSource, {list(targets)} AS nodeTarget '
+            f'MATCH (source:Selected), (target:Selected) '
+            f'WHERE id(source) IN nodeSource AND id(target) IN nodeTarget '
+            f'MATCH path = (source)-[:SELECTED*1..{max_depth}]->(target) '
+            f'WITH source, target, path, '
+            f'reduce(cost = 0, r IN relationships(path) | cost + r.weight) AS totalCost, '
+            f'[n IN nodes(path) | id(n)] AS nodeNames '
+            f'RETURN id(source) AS sourceNodeName, '
+            f'id(target) AS targetNodeName, '
+            f'totalCost, nodeNames '
+            f'ORDER BY id(source), id(target), totalCost DESC '
+            f'LIMIT {int(k) * len(sources) * len(targets)}')

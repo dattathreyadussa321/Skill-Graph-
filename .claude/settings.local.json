@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xxd:*)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(export:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(where neo4j:*)",
+      "Read(//c/Program Files/**)",
+      "Bash(ls /c/neo4j*)",
+      "Read(//c/dotdev/Learning_path/Learning-Path-Recommendation-System/frontend/$HOME/**)",
+      "Read(//c/Users/Dattu/AppData/Local/**)",
+      "Read(//c/Users/Dattu/**)",
+      "Bash(/c/neo4j/neo4j-community-4.4.30/bin/neo4j.bat start:*)",
+      "Bash(java:*)",
+      "Bash(tasklist:*)",
+      "Bash(taskkill:*)",
+      "Bash(curl:*)",
+      "mcp__ide__getDiagnostics"
+    ]
+  }
+}

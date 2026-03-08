@@ -3,13 +3,11 @@ from collections import Counter
 
 
 import numpy as np
-from py2neo import Graph
+from models.connection import get_graph
 
 from utilities.query_for_algorithm import *
 from constants.algorithm_constants import *
 from algorithm_implementation import optimize_candidate_courses_step1
-
-graph = Graph("bolt://neo4j:123456@localhost:7687")
 
 
 # checking lo is inside in user_lo_require or user_lo_current_require
@@ -36,7 +34,7 @@ def is_inside_list_lo_existed(lo_dict, user_lo_require, user_lo_current_require)
 
 # get lo require of a course with condition above
 def get_lo_require_a_course(course_id, user_lo_require, user_lo_current_require):
-    lo_require_per_course = graph.run(query_lo_require_a_course(course_id)).data()
+    lo_require_per_course = get_graph().run(query_lo_require_a_course(course_id)).data()
     lo_require_per_course_returned = []
     for lo in lo_require_per_course:
         if is_inside_list_lo_existed(lo, user_lo_require, user_lo_current_require):
@@ -62,12 +60,12 @@ def map_list_dict_to_list(dict):
 
 def create_temporary_relationship(user_id, user_lo_current_require):
     list_lo = list(map(map_list_dict_to_list, user_lo_current_require))
-    graph.run(query_to_create_temporary_relationship_user_lo(user_id, list_lo))
+    get_graph().run(query_to_create_temporary_relationship_user_lo(user_id, list_lo))
 
 
 def delete_temporary_relationship_created(user_id, user_lo_current_require):
     list_lo = list(map(map_list_dict_to_list, user_lo_current_require))
-    graph.run(query_to_remove_temporary_relationship_created(user_id))
+    get_graph().run(query_to_remove_temporary_relationship_created(user_id))
 
 
 # create descartes set courses

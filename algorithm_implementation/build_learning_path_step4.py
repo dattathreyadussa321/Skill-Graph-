@@ -7,9 +7,7 @@ from algorithm_implementation.evaluate_set_courses_step3 import get_top_course_t
 # import evaluate_set_courses_step3
 import numpy as np
 import json
-from py2neo import Graph
-
-graph = Graph()
+from models.connection import get_graph
 
 
 # data sample for test
@@ -17,7 +15,7 @@ graph = Graph()
 
 # Check if user can learn the course
 def user_can_learn(current_user_lo, course_id):
-    course_need_lo = graph.run(query_get_input_lo_of_a_course(course_id))
+    course_need_lo = get_graph().run(query_get_input_lo_of_a_course(course_id))
     flag = False
     if not course_need_lo:
         return True
@@ -45,7 +43,7 @@ def find_courses_can_learn(set_of_course, current_user_lo):
 
 # Update LO which user has, following the learning path
 def update_user_has_lo(current_user_lo, course_id):
-    lo_provided_course = graph.run(query_get_lo_provided_by_course(course_id))
+    lo_provided_course = get_graph().run(query_get_lo_provided_by_course(course_id))
     for i in lo_provided_course:
         flag = False
         for j in current_user_lo:
@@ -64,7 +62,7 @@ def update_user_has_lo(current_user_lo, course_id):
 # Create Learning Path for only set of course
 def create_LP(set_of_course, user_id):
     learning_path = []
-    user_has_lo = graph.run(query_get_lo_user_has(user_id)).data()
+    user_has_lo = get_graph().run(query_get_lo_user_has(user_id)).data()
     while True:
         course_can_learn = find_courses_can_learn(set_of_course, user_has_lo)
         if not course_can_learn:
@@ -93,7 +91,7 @@ def finding_set_of_LP(user_id):
 def calculate_relate_course(course_id, user_lo):
     match = 0
     sum = 0
-    provided_course_lo = graph.run(query_get_lo_provided_by_course(course_id)).data()
+    provided_course_lo = get_graph().run(query_get_lo_provided_by_course(course_id)).data()
     for i in user_lo:
         for j in provided_course_lo:
             if (i.get('id_lo') == j.get('id')):
@@ -110,7 +108,7 @@ def create_LP_Selection(set_of_course, user_id):
     user_new_lo = []
     while True:
         if not user_has_lo:
-            user_has_lo = graph.run(query_get_lo_user_has(user_id)).data()
+            user_has_lo = get_graph().run(query_get_lo_user_has(user_id)).data()
         course_can_learn = find_courses_can_learn(set_of_course, user_has_lo)
         if not user_new_lo:
             user_new_lo = user_has_lo
@@ -128,7 +126,7 @@ def create_LP_Selection(set_of_course, user_id):
                 else:
                     similarity_list_max.update({'course_id': course, 'similarity': similarity})
         learning_path.append(similarity_list_max.get('course_id'))
-        user_new_lo = graph.run(query_get_lo_provided_by_course(similarity_list_max.get('course_id')))
+        user_new_lo = get_graph().run(query_get_lo_provided_by_course(similarity_list_max.get('course_id')))
         user_has_lo = update_user_has_lo(user_has_lo, similarity_list_max.get('course_id'))
         set_of_course.pop(set_of_course.index(similarity_list_max.get('course_id')))
         if not set_of_course:

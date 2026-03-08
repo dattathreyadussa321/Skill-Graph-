@@ -2,21 +2,19 @@ import itertools
 from concurrent.futures.thread import ThreadPoolExecutor
 from random import randint
 
-from py2neo import Graph
+from models.connection import get_graph
 from utilities.query_for_algorithm import *
 from constants.algorithm_constants import *
-
-graph = Graph()
 
 
 # get list LO that user need
 def get_user_lo_need(user_id):
-    return graph.run(query_get_user_need_lo(user_id)).data()
+    return get_graph().run(query_get_user_need_lo(user_id)).data()
 
 
 # get list LO that user has and need
 def get_user_lo(user_id):
-    return graph.run(query_get_user_lo(user_id)).data()
+    return get_graph().run(query_get_user_lo(user_id)).data()
 
 
 # checking lo belong or not a set lo
@@ -109,7 +107,7 @@ def is_course_provided_more_than_one_lo(list_lo, lo_dict, user_lo_need):
 # checking for a course that is or not satisfy second criteria
 def is_require_lo_of_course_belonged(course_id, user_lo_need):
     counter = 0
-    list_require_lo = graph.run(query_get_input_lo_of_a_course(course_id)).data()
+    list_require_lo = get_graph().run(query_get_input_lo_of_a_course(course_id)).data()
     for lo in list_require_lo:
         if is_lo_belong_set_lo(user_lo_need, lo):
             counter += 1
@@ -136,7 +134,7 @@ def is_output_lo_of_course_less_or_equal_than_delta(user_lo_need, list_lo_provid
 # checking for a course that is or not satisfy fourth criteria
 def is_input_lo_of_course_outside_less_or_equal_than_alpha(course_id, user_lo_need):
     counter = 0
-    list_require_lo = graph.run(query_get_input_lo_of_a_course(course_id)).data()
+    list_require_lo = get_graph().run(query_get_input_lo_of_a_course(course_id)).data()
     for lo in list_require_lo:
         if is_lo_belong_set_lo(user_lo_need, lo):
             continue
@@ -163,7 +161,7 @@ def is_amount_level_redundancy_less_than_beta(lo_dict, list_lo_provided_by_cours
 
 # checking for a course that is or not satisfy sixth criteria
 def is_rating_for_course_greater_than_lambda(course_id):
-    course = graph.run(query_get_rating_course(course_id)).data()
+    course = get_graph().run(query_get_rating_course(course_id)).data()
     for lo in course:
         if lo.get('rating') is not None and lo.get('rating') >= AlgorithmConstant.LAMBDA:
             return True
@@ -173,7 +171,7 @@ def is_rating_for_course_greater_than_lambda(course_id):
 
 # checking for a course that satisfy criteria provide by user
 def is_candidate_courses_a_LO(course_id, lo_dict, user_lo_need, user_lo, criteria, user_course_extra):
-    list_lo_provided_by_course = graph.run(query_get_lo_provided_by_course(course_id)).data()
+    list_lo_provided_by_course = get_graph().run(query_get_lo_provided_by_course(course_id)).data()
 
     switcher = {
         0: is_course_existed(course_id, user_course_extra),
@@ -189,7 +187,7 @@ def is_candidate_courses_a_LO(course_id, lo_dict, user_lo_need, user_lo, criteri
 
 # get candidate courses for a lo
 def get_list_candidate_courses_for_a_lo(lo_dict, user_lo_need, user_lo, mode, user_course_extra):
-    course_lo = graph.run(query_get_courses_provided_a_lo(lo_dict.get('id'), lo_dict.get('level'))).data()
+    course_lo = get_graph().run(query_get_courses_provided_a_lo(lo_dict.get('id'), lo_dict.get('level'))).data()
     list_course_lo = []
 
     for i in range(7 - mode):
@@ -220,11 +218,11 @@ def get_set_candidate_for_all_lo(user_lo, user_lo_need, mode, user_course_extra)
 
 # calculate similarity between a user and a course
 def calculate_similarity_per_node_jaccard(user_id, course_id):
-    return graph.run(query_calculate_similarity_jaccard(user_id, course_id)).data()[0]['similarity']
+    return get_graph().run(query_calculate_similarity_jaccard(user_id, course_id)).data()[0]['similarity']
 
 
 def calculate_similarity_per_node_overlap(user_id, course_id):
-    return graph.run(query_calculate_similarity_overlap(user_id, course_id)).data()[0]['similarity']
+    return get_graph().run(query_calculate_similarity_overlap(user_id, course_id)).data()[0]['similarity']
 
 
 # function for determine attribute similarity for sort in list

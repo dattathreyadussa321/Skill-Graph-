@@ -1,15 +1,20 @@
-from django.contrib import admin
-from django.urls import path, include
-from . import career_apis, learning_object_apis, views, user_apis, course_apis
+from django.urls import path
+from . import career_apis, learning_object_apis, user_apis, course_apis, common_apis, chatbot_apis
 
 urlpatterns = [
-    # Path for Career
+    # Health check
+    path('health/', common_apis.health_check),
+
+    # Chatbot endpoint
+    path('chatbot/chat', chatbot_apis.chat),
+
+    # Career endpoints
     path('career/', career_apis.get_all_career),
     path('career/one', career_apis.get_career_by_id),
-    # path('career/language', learning_object_apis.get_language_by_career),
     path('career/lo', career_apis.get_lo_need),
+    path('learning-path', career_apis.get_skill_learning_path),
 
-    # Path for Learning Object
+    # Learning Object endpoints
     path('lo/all', learning_object_apis.get_search_lo),
     path('lo/language/', learning_object_apis.get_all_programing_language),
     path('lo/knowledge', learning_object_apis.get_all_knowledge),
@@ -17,101 +22,24 @@ urlpatterns = [
     path('lo/platform', learning_object_apis.get_all_platform),
     path('lo/framework', learning_object_apis.get_all_framework),
 
-    # Path for Course
+    # Course endpoints
+    path('course', course_apis.get_info_course),
     path('course/provided/lo', course_apis.get_lo_provided_by_course),
     path('course/required/lo', course_apis.get_lo_required_by_course),
-    path('course', course_apis.get_info_course),
 
-    # Path for user
+    # User endpoints
     path('user/login', user_apis.login),
     path('user/register', user_apis.register),
-    path('user/need', user_apis.get_lo_need_by_user),
+    path('user/create', user_apis.create_user),
+    path('user/info/', user_apis.get_user_info),
+    path('user/objective', user_apis.create_objective_career),
     path('user/career/update', user_apis.update),
-    path('user/has', learning_object_apis.get_lo_has),
+    path('user/need', user_apis.get_lo_need_by_user),
+    path('user/lp', user_apis.get_lp_info),
+    path('user/learning-path', user_apis.get_learning_path),
+
+    # User LO management (GET vs POST handled in view)
+    path('user/has', learning_object_apis.handle_user_has),
     path('user/has/create', learning_object_apis.create_lo_has),
     path('user/has/delete', learning_object_apis.delete_lo_has),
-    path('user/update', user_apis.create_user),
-    path('user/lp', user_apis.get_lp_info),
-
-    # url: http://localhost:8000/apis/user/create
-    # method: POST
-    # {
-    #     "name": "bdv",
-    #     "email": "ssfsf@signal.com",
-    #     "cost": 1000,
-    #     "time": 0
-    # }
-    # response: {
-    #      "status": "success" | "fail"
-    # }
-    path('user/create', user_apis.create_user),
-
-    # url: http://localhost:8000/apis/user/info?id=4684
-    # method: GET
-    # response: {
-    #     "id": 4684,
-    #     "username": "Bob123",
-    #     "name": "Bob"
-    # }
-    path('user/info/', user_apis.get_user_info),
-
-    # url: http://localhost:8000/apis/user/objective
-    # method: POST
-    # body_example: {
-    #     "user_id": 4686,
-    #     "career_id": 35
-    # }
-    # response: {
-    #      "status": "success" | "fail"
-    # }
-    path('user/objective', user_apis.create_objective_career),
-
-    # url: http://localhost:8000/apis/user/has
-    # method: POST
-    # body_example: {
-    #     "user_id": 4684,
-    #     "list_lo": [
-    #         {
-    #             "id": 22,
-    #             "type": "tool",
-    #             "level": 1
-    #         },
-    #         {
-    #             "id": 16,
-    #             "type": "knowledge",
-    #             "level": 1
-    #         },
-    #         {
-    #             "id": 27,
-    #             "type": "platform",
-    #             "level": 1
-    #         },
-    #         {
-    #             "id": 91,
-    #             "type": "framework",
-    #             "level": 1
-    #         }
-    #     ]
-    # }
-    # response: {
-    #      "status": "success" | "fail"
-    # }
-    path('user/has', user_apis.create_user_has_lo),
-
-    # url: http://localhost:8000/apis/user/learning-path?id=4685
-    # method: GET
-    # response: [
-    # [
-    #     2081,
-    #     867,
-    #     3269,
-    #     1905,
-    #     4404,
-    #     2153,
-    #     4415,
-    #     4417,
-    #     3161
-    # ]
-    # ]
-    path('user/learning-path', user_apis.get_learning_path)
 ]
