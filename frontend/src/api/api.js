@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: '/apis',
-  headers: { 'Content-Type': 'application/json' },
+  baseURL: "https://skill-graph.onrender.com"
 });
 
 // ── User APIs ──────────────────────────────────────────────
