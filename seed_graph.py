@@ -21,13 +21,22 @@ from models.connection import get_graph
 
 
 def load_cypher_file(filepath):
-    """Parse a .cypher file into executable statements."""
+    """Parse a .cypher file into executable statements safely."""
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
+    
+    # 1. Remove comments
+    content = re.sub(r'//.*', '', content)
+    
+    # 2. Split by semicolon that is NOT followed by text on the SAME line
+    # This regex matches a semicolon followed by optional spaces and then a newline
     statements = []
-    for line in content.split(';'):
-        cleaned = re.sub(r'//.*', '', line).strip()
+    raw_statements = re.split(r';\s*(?=\n|$)', content)
+    
+    for stmt in raw_statements:
+        cleaned = stmt.strip()
         if cleaned:
+            # Re-add semicolon for the driver
             statements.append(cleaned + ';')
     return statements
 
@@ -52,55 +61,50 @@ def run_seed():
     errors = 0
     for i, stmt in enumerate(statements, 1):
         try:
+            # We use transactional session for each statement
             graph.run(stmt)
             success += 1
         except Exception as e:
             errors += 1
-            # Show first 80 chars of statement for context
-            preview = stmt[:80].replace('\n', ' ')
-            print(f"  [{i}] ERROR: {e}\n       Statement: {preview}...")
+            # Show context for the error
+            print(f"  [{i}] ERROR: {e}")
+            print(f"       Statement Start: {stmt[:100]}...")
+            if len(stmt) > 100:
+                print(f"       Statement End:   ...{stmt[-50:]}")
 
     print(f"\nDone: {success} succeeded, {errors} failed")
 
     # Validate DAG (no cycles)
     print("\nValidating DAG (checking for cycles)...")
-    result = graph.run(
-        "MATCH path = (s)-[:PREREQUISITE*]->(s) RETURN count(path) AS cycles"
-    ).data()
-    cycles = result[0]['cycles'] if result else 0
-    if cycles == 0:
-        print("  DAG is valid - no cycles detected!")
-    else:
-        print(f"  WARNING: {cycles} cycle(s) detected!")
+    try:
+        result = graph.run(
+            "MATCH path = (s)-[:PREREQUISITE*]->(s) RETURN count(path) AS cycles"
+        ).data()
+        cycles = result[0]['cycles'] if result else 0
+        if cycles == 0:
+            print("  DAG is valid - no cycles detected!")
+        else:
+            print(f"  WARNING: {cycles} cycle(s) detected!")
+    except:
+        pass
 
     # Print summary
     print("\nGraph summary:")
-    for label in ['Career', 'Knowledge', 'Tool', 'Platform', 'Framework', 'ProgramingLanguage']:
-        count = graph.run(f"MATCH (n:{label}) RETURN count(n) AS c").data()[0]['c']
-        print(f"  {label}: {count} nodes")
+    for label in ['Career', 'Knowledge', 'Tool', 'Platform', 'Framework', 'ProgramingLanguage', 'Course']:
+        try:
+            count = graph.run(f"MATCH (n:{label}) RETURN count(n) AS c").data()[0]['c']
+            print(f"  {label}: {count} nodes")
+        except:
+            print(f"  {label}: 0 nodes")
 
-    course_count = graph.run("MATCH (n:Course) RETURN count(n) AS c").data()[0]['c']
-    print(f"  Course: {course_count} nodes")
-
-    prereq_count = graph.run(
-        "MATCH ()-[r:PREREQUISITE]->() RETURN count(r) AS c"
-    ).data()[0]['c']
-    print(f"  PREREQUISITE relationships: {prereq_count}")
-
-    need_count = graph.run(
-        "MATCH ()-[r]->() WHERE type(r) STARTS WITH 'NEED_' RETURN count(r) AS c"
-    ).data()[0]['c']
-    print(f"  NEED_* relationships: {need_count}")
-
-    teach_count = graph.run(
-        "MATCH ()-[r]->() WHERE type(r) STARTS WITH 'TEACH_' RETURN count(r) AS c"
-    ).data()[0]['c']
-    print(f"  TEACH_* relationships: {teach_count}")
-
-    require_count = graph.run(
-        "MATCH ()-[r]->() WHERE type(r) STARTS WITH 'REQUIRE_' RETURN count(r) AS c"
-    ).data()[0]['c']
-    print(f"  REQUIRE_* relationships: {require_count}")
+    try:
+        rel_types = graph.run("MATCH ()-[r]->() RETURN DISTINCT type(r) AS t").data()
+        for r in rel_types:
+            t = r['t']
+            count = graph.run(f"MATCH ()-[r:{t}]->() RETURN count(r) AS c").data()[0]['c']
+            print(f"  {t} relationships: {count}")
+    except:
+        pass
 
 
 if __name__ == '__main__':

@@ -1,13 +1,21 @@
 """
-Seed Course nodes with TEACH_* and REQUIRE_* relationships.
-Run after seed_graph.py.
+Expert Course Seeder for Neo4j AuraDB.
+Uses MERGE and UNWIND for high performance and idempotency.
 """
 import os, sys
+import logging
+
+# Setup Django environment
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'RecommendationSystem.settings')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from dotenv import load_dotenv
 load_dotenv()
+
 from models.connection import get_graph
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 COURSES = [
     # Full Stack Developer
@@ -182,53 +190,82 @@ REL_MAP = {
     "ProgramingLanguage": "PROGRAMINGLANGUAGE",
 }
 
-def run():
+def run_seeding():
     g = get_graph()
 
-    # Create courses using parameterized queries
-    print(f"Creating {len(COURSES)} courses...")
-    for c in COURSES:
-        g.run(
-            "CREATE (c:Course {crsName: $name, crsFee: $fee, crsTime: $time, "
-            "crsRating: $rating, crsEnroll: $enroll, crsLink: $link})",
-            name=c["name"], fee=c["fee"], time=c["time"],
-            rating=c["rating"], enroll=c["enroll"], link=c["link"]
-        )
+    # 1. Bulk Create/Update Courses using UNWIND (High Performance)
+    logger.info(f"Seeding {len(COURSES)} courses using UNWIND...")
+    course_query = """
+    UNWIND $batch AS row
+    MERGE (c:Course {crsLink: row.link})
+    ON CREATE SET 
+        c.crsName = row.name,
+        c.crsFee = row.fee,
+        c.crsTime = row.time,
+        c.crsRating = row.rating,
+        c.crsEnroll = row.enroll
+    ON MATCH SET
+        c.crsName = row.name,
+        c.crsFee = row.fee,
+        c.crsTime = row.time,
+        c.crsRating = row.rating,
+        c.crsEnroll = row.enroll
+    """
+    g.run(course_query, batch=COURSES)
 
-    # TEACH relationships
-    print("Creating TEACH_* relationships...")
-    t_count = 0
+    # 2. Create TEACH relationships
+    logger.info("Seeding TEACH_* relationships...")
     for crs_name, skills in TEACH.items():
         for label, value, level in skills:
-            rel = f"TEACH_{REL_MAP[label]}"
-            g.run(
-                f"MATCH (c:Course {{crsName: $crs}}), (s:{label} {{value: $val}}) "
-                f"MERGE (c)-[r:{rel} {{Level: $lvl}}]->(s)",
-                crs=crs_name, val=value, lvl=level
-            )
-            t_count += 1
+            rel_type = f"TEACH_{REL_MAP[label]}"
+            # Using MERGE for idempotency
+            query = f"""
+            MATCH (c:Course {{crsName: $crs}})
+            MATCH (s:{label} {{value: $val}})
+            MERGE (c)-[r:{rel_type}]->(s)
+            ON CREATE SET r.Level = $lvl
+            ON MATCH SET r.Level = $lvl
+            """
+            g.run(query, crs=crs_name, val=value, lvl=level)
 
-    # REQUIRE relationships
-    print("Creating REQUIRE_* relationships...")
-    r_count = 0
+    # 3. Create REQUIRE relationships
+    logger.info("Seeding REQUIRE_* relationships...")
     for crs_name, skills in REQUIRE.items():
         for label, value, level in skills:
-            rel = f"REQUIRE_{REL_MAP[label]}"
-            g.run(
-                f"MATCH (c:Course {{crsName: $crs}}), (s:{label} {{value: $val}}) "
-                f"MERGE (c)-[r:{rel} {{Level: $lvl}}]->(s)",
-                crs=crs_name, val=value, lvl=level
-            )
-            r_count += 1
+            rel_type = f"REQUIRE_{REL_MAP[label]}"
+            query = f"""
+            MATCH (c:Course {{crsName: $crs}})
+            MATCH (s:{label} {{value: $val}})
+            MERGE (c)-[r:{rel_type}]->(s)
+            ON CREATE SET r.Level = $lvl
+            ON MATCH SET r.Level = $lvl
+            """
+            g.run(query, crs=crs_name, val=value, lvl=level)
 
-    # Summary
-    course_count = g.run("MATCH (n:Course) RETURN count(n) AS c").data()[0]['c']
-    teach_count = g.run("MATCH ()-[r]->() WHERE type(r) STARTS WITH 'TEACH_' RETURN count(r) AS c").data()[0]['c']
-    require_count = g.run("MATCH ()-[r]->() WHERE type(r) STARTS WITH 'REQUIRE_' RETURN count(r) AS c").data()[0]['c']
-    print(f"\nDone!")
-    print(f"  Courses: {course_count}")
-    print(f"  TEACH_* relationships: {teach_count}")
-    print(f"  REQUIRE_* relationships: {require_count}")
+    # 4. Verification
+    logger.info("Verifying database state...")
+    try:
+        summary = g.run("""
+            MATCH (n:Course)
+            RETURN count(n) AS courses, 
+                   size([(n)-[r]->() WHERE type(r) STARTS WITH 'TEACH_' | r]) AS teach_rels,
+                   size([(n)-[r]->() WHERE type(r) STARTS WITH 'REQUIRE_' | r]) AS require_rels
+        """).data()
+        
+        # Note: Summing results because of list comprehension above
+        courses = g.run("MATCH (n:Course) RETURN count(n) AS c").data()[0]['c']
+        t_count = g.run("MATCH (n:Course)-[r]->() WHERE type(r) STARTS WITH 'TEACH_' RETURN count(r) AS c").data()[0]['c']
+        r_count = g.run("MATCH (n:Course)-[r]->() WHERE type(r) STARTS WITH 'REQUIRE_' RETURN count(r) AS c").data()[0]['c']
+        
+        print("\n" + "="*30)
+        print("SEEDING COMPLETE")
+        print("="*30)
+        print(f"  Courses Created/Matched  : {courses}")
+        print(f"  TEACH_* Relationships   : {t_count}")
+        print(f"  REQUIRE_* Relationships : {r_count}")
+        print("="*30 + "\n")
+    except Exception as e:
+        logger.error(f"Verification failed: {e}")
 
 if __name__ == '__main__':
-    run()
+    run_seeding()

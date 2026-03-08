@@ -18,6 +18,13 @@ from neomodel import StructuredNode, StringProperty, DateProperty, RelationshipT
 from neomodel import StructuredRel
 
 # Tao connection
+def _get_int_id(eid):
+    if isinstance(eid, str) and ":" in eid:
+        try:
+            return int(eid.split(":")[-1])
+        except:
+            pass
+    return eid
 
 
 #########################################################################
@@ -76,7 +83,7 @@ class Subject(StructuredNode):
 
     def to_json(self):
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "value": self.Name
         }
 
@@ -108,7 +115,7 @@ class Website(StructuredNode):
 
     def to_json(self):
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "value": self.webName
         }
 
@@ -123,7 +130,7 @@ class Organization(StructuredNode):
 
     def to_json(self):
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "value": self.orgName
         }
 
@@ -138,7 +145,7 @@ class Instructor(StructuredNode):
 
     def to_json(self):
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "value": self.insName
         }
 
@@ -152,7 +159,7 @@ class SubTitle(StructuredNode):
 
     def to_json(self):
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "value": self.subLanguage
         }
 
@@ -166,7 +173,7 @@ class Level(StructuredNode):
 
     def to_json(self):
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "value": self.levName
         }
 
@@ -208,7 +215,7 @@ class Course(StructuredNode):
             fee = -1
         crsName = self.crsName.replace("\x92", "'")
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "crsEnroll": self.crsEnroll,
             "crsName": crsName,
             "crsTime": self.crsTime,
@@ -240,7 +247,7 @@ class Course(StructuredNode):
             fee = 0
         crsName = self.crsName.replace("\x92", "'")
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "crsEnroll": self.crsEnroll,
             "crsName": crsName,
             "crsTime": self.crsTime,
@@ -269,7 +276,7 @@ class Course(StructuredNode):
 
     def get_one(id):
         try:
-            model = Course(id=id)
+            model = Course(id=_get_int_id(id))
             model.refresh()
             return model
         except:
@@ -294,7 +301,7 @@ class Career(StructuredNode):
 
     def to_json(self):
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "creTitle": self.creTitle,
             "knowledge": map(lambda n: n.to_json(), self.knowledge),
             "platform": map(lambda n: n.to_json(), self.platform),
@@ -306,13 +313,13 @@ class Career(StructuredNode):
 
     def to_json_1(self):
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "creTitle": self.creTitle,
         }
 
     def export(self):
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "creTitle": self.creTitle,
             "knowledge": map(lambda n: n.export(), self.knowledge),
             "platform": map(lambda n: n.export(), self.platform),
@@ -324,7 +331,7 @@ class Career(StructuredNode):
 
     def get_one(id):
         try:
-            model = Career(id=id)
+            model = Career(id=_get_int_id(id))
             model.refresh()
             return model
         except:
@@ -372,7 +379,7 @@ class Program(StructuredNode):
 
     def to_json(self):
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "proName": self.proName,
             "course": list(map(lambda n: n.to_json(), self.course)),
             "knowledge": list(map(lambda n: n.to_json(), self.knowledge)),
@@ -384,7 +391,7 @@ class Program(StructuredNode):
 
     def to_json_1(self):
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "proName": self.proName,
             "course": list(map(lambda n: n.to_json(), self.course)),
             "knowledge": list(map(lambda n: n.to_json(), self.knowledge)),
@@ -399,7 +406,7 @@ class Program(StructuredNode):
 
     def get_one(id):
         try:
-            model = Program(id=id)
+            model = Program(id=_get_int_id(id))
             model.refresh()
             return model
         except:
@@ -422,7 +429,7 @@ class Knowledge(StructuredNode):
     def to_json(self):
         value = self.value.replace("\x92", "'")
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "value": value
         }
 
@@ -446,7 +453,7 @@ class Tool(StructuredNode):
     def to_json(self):
         value = self.value.replace("\x92", "'")
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "value": value
         }
 
@@ -469,7 +476,7 @@ class Platform(StructuredNode):
     def to_json(self):
         value = self.value.replace("\x92", "'")
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "value": value
         }
 
@@ -493,7 +500,7 @@ class Framework(StructuredNode):
     def to_json(self):
         value = self.value.replace("\x92", "'")
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "value": value
         }
 
@@ -517,7 +524,7 @@ class ProgramingLanguage(StructuredNode):
     def to_json(self):
         value = self.value.replace("\x92", "'")
         return {
-            "id": self.id,
+            "id": _get_int_id(self.element_id),
             "value": value,
         }
 
