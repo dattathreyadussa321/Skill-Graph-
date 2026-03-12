@@ -11,6 +11,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Link from '@mui/material/Link';
 import SchoolIcon from '@mui/icons-material/School';
 import { registerUser } from '../api/api';
+import logo from '../assets/logo.png';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -70,7 +71,14 @@ export default function Register() {
       <Card sx={{ maxWidth: 420, width: '100%' }} elevation={3}>
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <SchoolIcon sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+            <Box
+              component="img"
+              src={logo}
+              alt="SkilloGraph Logo"
+              sx={{ height: 80, mb: 1 }}
+            />
+          </Box>
             <Typography variant="h5" fontWeight={700}>
               Create Account
             </Typography>

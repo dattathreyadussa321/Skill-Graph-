@@ -12,9 +12,10 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
-import SchoolIcon from '@mui/icons-material/School';
 import LogoutIcon from '@mui/icons-material/Logout';
 import useMediaQuery from '@mui/material/useMediaQuery';
+
+import logo from '../assets/icon.png'; // <-- your logo
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -60,6 +61,7 @@ export default function Navbar() {
           {item.label}
         </Button>
       ))}
+
       {userId && (
         <Button
           onClick={handleLogout}
@@ -75,13 +77,27 @@ export default function Navbar() {
   return (
     <AppBar position="sticky" elevation={1}>
       <Toolbar>
-        <SchoolIcon sx={{ mr: 1 }} />
+
+        {/* Logo */}
+        <Box
+          component="img"
+          src={logo}
+          alt="SkilloGraph Logo"
+          sx={{
+            height: 28,
+            mr: 1,
+            cursor: 'pointer'
+          }}
+          onClick={() => navigate(userId ? '/careers' : '/login')}
+        />
+
+        {/* Title */}
         <Typography
           variant="h6"
           sx={{ flexGrow: 1, cursor: 'pointer', fontWeight: 700 }}
           onClick={() => navigate(userId ? '/careers' : '/login')}
         >
-          SkillGraph
+          SkilloGraph
         </Typography>
 
         {isMobile ? (
@@ -89,6 +105,7 @@ export default function Navbar() {
             <IconButton color="inherit" onClick={() => setDrawerOpen(true)}>
               <MenuIcon />
             </IconButton>
+
             <Drawer
               anchor="right"
               open={drawerOpen}
@@ -109,6 +126,7 @@ export default function Navbar() {
                       </ListItemButton>
                     </ListItem>
                   ))}
+
                   {userId && (
                     <ListItem disablePadding>
                       <ListItemButton onClick={handleLogout}>
@@ -121,7 +139,9 @@ export default function Navbar() {
             </Drawer>
           </>
         ) : (
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>{navContent}</Box>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {navContent}
+          </Box>
         )}
       </Toolbar>
     </AppBar>
